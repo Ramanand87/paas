@@ -19,7 +19,6 @@ HEADERS = {
 }
 
 RENDER_API_URL = "https://api.render.com/v1/services"
-print(RENDER_API_KEY)
 
 class DeployApp(APIView):
     def post(self, request):
@@ -43,8 +42,10 @@ class DeployApp(APIView):
         response = requests.post(RENDER_API_URL, json=payload, headers=HEADERS)
 
         if response.status_code == 201:
-            service_id = response.json().get("id")
+            response_data = response.json()
+            service_id = response_data.get("service", {}).get("id")  
+            deployment_url = response_data.get("service", {}).get("serviceDetails", {}).get("url")
             Deployment.objects.create(github_repo=github_repo, render_service_id=service_id, status="Deploying",created_at=datetime.datetime.now())
-            return Response({"message": "Deployment started", "service_id": service_id})
+            return Response({"message": "Deployment started", "service_id": service_id, "deployment_url": deployment_url}, status=201)
         
         return Response(response.json(), status=response.status_code)
